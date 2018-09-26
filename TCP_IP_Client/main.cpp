@@ -45,105 +45,10 @@ void main()
     WSACleanup();
   }
 
-  // get State
-  //Request req
-  //{
-  //  0x0009, // LenghtOfFrame
-  //  1, // Command
-  //  0, // OffsetWrite
-  //  0, // LengthWrite
-  //     // DataWrite - LengthWrite Bytes
-  //  0, // OffsetRead
-  //  0xFFFF
-  //};
-
-  //Response resp
-  //{
-  //  0x000D, // LengthOfFrame
-  //  0x00, // Return State
-  //};
-
   // Read Directory
-  Request_ReadDirectory req2("-1");
+  Request_ReadDirectory req("-1");
 
-  int sendResult2 = req2.sendReq(sock);
-  if (sendResult2 == SOCKET_ERROR)
-  {
-    cerr << "Send failed, Err#" << WSAGetLastError() << endl;
-    closesocket(sock);
-    WSACleanup();
-  }
-
-  char respBuff[60000] = {0};
-  Response resp2(respBuff, sizeof(respBuff));
-
-  int recvRes2 = resp2.getResp(sock);
-  if (recvRes2 == SOCKET_ERROR)
-  {
-    cerr << "Recv failed, Err#" << WSAGetLastError() << endl;
-    closesocket(sock);
-    WSACleanup();
-  }
-
-  Request_ReadFileSize req3("#summary.sta");
-
-  sendResult2 = req3.sendReq(sock);
-  if (sendResult2 == SOCKET_ERROR)
-  {
-    cerr << "Send failed, Err#" << WSAGetLastError() << endl;
-    closesocket(sock);
-    WSACleanup();
-  }
-
-  Response_FileSize resp3;
-
-  recvRes2 = resp3.getResp(sock);
-  if (recvRes2 == SOCKET_ERROR)
-  {
-    cerr << "Recv failed, Err#" << WSAGetLastError() << endl;
-    closesocket(sock);
-    WSACleanup();
-  }
-
-  cout << resp3.GetSize() << endl;
-
-/*
-
-  int sendResult1 = send(sock, reinterpret_cast<char*>(&req1), sizeof(req1), 0);
-  if (sendResult1 == SOCKET_ERROR)
-  {
-    cerr << "Send failed, Err#" << WSAGetLastError() << endl;
-    closesocket(sock);
-    WSACleanup();
-  }
-
-  Response resp1;
-  int recvResult1 = recv(sock, reinterpret_cast<char*>(&resp1), sizeof(resp1), 0);
-  if (recvResult1 == SOCKET_ERROR)
-  {
-    cerr << "Recv failed, Err#" << WSAGetLastError() << endl;
-    closesocket(sock);
-    WSACleanup();
-  }
-
-  // ReadFileData
-  Request req
-  {
-    22,
-    0x05,
-    0x0000,
-    18,
-    "#summary.sta",
-    0x0001,
-    0x0001
-  };
-
-  Response resp
-  {
-
-  };
-
-  int sendResult = send(sock, reinterpret_cast<char*>(&req), sizeof(req), 0);
+  int sendResult = req.sendReq(sock);
   if (sendResult == SOCKET_ERROR)
   {
     cerr << "Send failed, Err#" << WSAGetLastError() << endl;
@@ -151,20 +56,67 @@ void main()
     WSACleanup();
   }
 
-  cout << "Bytes sent: " << sendResult << endl;
+  char respBuff[60000] = {0};
+  Response resp(respBuff, sizeof(respBuff));
 
-  //int recvResult = recv(sock, reinterpret_cast<char*>(&resp), sizeof(resp), 0);
-  char buf[120];
-  buf[0] = 0xD;
-  int recvResult = recv(sock, buf, 120, 0);
-  if (recvResult == SOCKET_ERROR)
+  int recvRes = resp.getResp(sock);
+  if (recvRes == SOCKET_ERROR)
   {
     cerr << "Recv failed, Err#" << WSAGetLastError() << endl;
     closesocket(sock);
     WSACleanup();
   }
 
-  */
+  // Read File Size
+  Request_ReadFileSize req2("#summary.sta");
+
+  sendResult = req2.sendReq(sock);
+  if (sendResult == SOCKET_ERROR)
+  {
+    cerr << "Send failed, Err#" << WSAGetLastError() << endl;
+    closesocket(sock);
+    WSACleanup();
+  }
+
+  Response_FileSize resp2;
+
+  recvRes = resp2.getResp(sock);
+  if (recvRes == SOCKET_ERROR)
+  {
+    cerr << "Recv failed, Err#" << WSAGetLastError() << endl;
+    closesocket(sock);
+    WSACleanup();
+  }
+
+  cout << resp2.GetSize() << endl;
+
+  // Read File Data
+  Request_ReadFile req3("#summary.sta");
+
+  sendResult = req3.sendReq(sock);
+  if (sendResult == SOCKET_ERROR)
+  {
+    cerr << "Send failed, Err#" << WSAGetLastError() << endl;
+    closesocket(sock);
+    WSACleanup();
+  }
+
+  int fileSize = resp2.GetSize();
+  char *respBuff3 = new char[fileSize];
+  memset(respBuff3, 0, fileSize);
+
+  Response resp3(respBuff3, fileSize);
+  recvRes = resp3.getResp(sock);
+  if (recvRes == SOCKET_ERROR)
+  {
+    cerr << "Recv failed, Err#" << WSAGetLastError() << endl;
+    closesocket(sock);
+    WSACleanup();
+  }
+
+  // Parse file
+
+  delete[] respBuff3;
 
   // do while loop to send and receive data
   while(true)
@@ -173,9 +125,4 @@ void main()
   }
 
   return;
-}
-
-void PrintArray(const char* array)
-{
-  
 }

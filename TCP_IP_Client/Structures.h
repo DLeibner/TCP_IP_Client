@@ -179,7 +179,7 @@ struct Response
   }
 };
 
-struct Response_FileSize: public Response
+struct Response_FileSize : public Response
 {
   Response_FileSize() :
     Response(m_RespBuff, sizeof(m_RespBuff))
