@@ -64,17 +64,9 @@ void main()
   //};
 
   // Read Directory
-  Request req2
-  {
-    6,
-    0x05,
-    0,
-    0x0001,
-    "0",
-    0,
-    0x0001
-  };
-  int sendResult2 = send(sock, reinterpret_cast<char*>(&req2), sizeof(req2), 0);
+  Request_ReadDirectory req2("-1");
+
+  int sendResult2 = req2.sendReq(sock);
   if (sendResult2 == SOCKET_ERROR)
   {
     cerr << "Send failed, Err#" << WSAGetLastError() << endl;
@@ -82,31 +74,40 @@ void main()
     WSACleanup();
   }
 
-  Response resp2
-  {
-    0,
-    0x00,
-  };
-  int recvResult2 = recv(sock, reinterpret_cast<char*>(&resp2), sizeof(resp2), 0);
-  if (recvResult2 == SOCKET_ERROR)
+  char respBuff[60000] = {0};
+  Response resp2(respBuff, sizeof(respBuff));
+
+  int recvRes2 = resp2.getResp(sock);
+  if (recvRes2 == SOCKET_ERROR)
   {
     cerr << "Recv failed, Err#" << WSAGetLastError() << endl;
     closesocket(sock);
     WSACleanup();
   }
 
+  Request_ReadFileSize req3("#summary.sta");
 
-  // DataSize
-  Request req1
+  sendResult2 = req3.sendReq(sock);
+  if (sendResult2 == SOCKET_ERROR)
   {
-    22,
-    0x05,
-    0x0000,
-    0x0013,
-    "#summary.sta",
-    0x0001,
-    0x0000
-  };
+    cerr << "Send failed, Err#" << WSAGetLastError() << endl;
+    closesocket(sock);
+    WSACleanup();
+  }
+
+  Response_FileSize resp3;
+
+  recvRes2 = resp3.getResp(sock);
+  if (recvRes2 == SOCKET_ERROR)
+  {
+    cerr << "Recv failed, Err#" << WSAGetLastError() << endl;
+    closesocket(sock);
+    WSACleanup();
+  }
+
+  cout << resp3.GetSize() << endl;
+
+/*
 
   int sendResult1 = send(sock, reinterpret_cast<char*>(&req1), sizeof(req1), 0);
   if (sendResult1 == SOCKET_ERROR)
@@ -131,7 +132,7 @@ void main()
     22,
     0x05,
     0x0000,
-    0x0018,
+    18,
     "#summary.sta",
     0x0001,
     0x0001
@@ -163,6 +164,8 @@ void main()
     WSACleanup();
   }
 
+  */
+
   // do while loop to send and receive data
   while(true)
   {
@@ -170,4 +173,9 @@ void main()
   }
 
   return;
+}
+
+void PrintArray(const char* array)
+{
+  
 }
