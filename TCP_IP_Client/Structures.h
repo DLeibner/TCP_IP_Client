@@ -110,15 +110,17 @@ struct Request_ReadFile : public Request
 
 struct Response
 {
-  Response(char *buff = nullptr, unsigned int BuffSize = 0)
+  Response(char *buff = nullptr, unsigned int BuffSize = 0, bool UseLength = false)
   {
     m_RecvBuffer = buff;
     m_RecvBuffSize = BuffSize;
+    m_UseFrameLength = UseLength;
   }
 
   unsigned _int16 LengthOfFrame = 0;
   unsigned _int32 ExtLengthOfFrame = 0;
   _int8 ReturnState = 0;
+  bool m_UseFrameLength;
 
   unsigned int m_Length = 0;
   
@@ -126,9 +128,53 @@ struct Response
   int m_RecvBuffSize;
   int m_RecvBuffUsed = 0;
 
-  int getResp(const SOCKET s)
+  // internal: either the buffer fills, of the timeout expires
+  int xx_Recv(const SOCKET s, char *buff, unsigned int buffSize, unsigned int &timeSpentMs, unsigned int timeLimitMs)
   {
-    int res = recv(s, reinterpret_cast<char*>(&LengthOfFrame), 2, 0);
+    int TotalReceived = 0;
+
+    for (;;)
+    {
+      int res = recv(s, buff + TotalReceived, buffSize - TotalReceived, 0);
+
+      if (res < 0 && WSAGetLastError() != WSAEWOULDBLOCK)
+      {
+        // socket error
+        return res;
+      }
+
+      if (res == 0)
+      {
+        return -1;
+      }
+
+      // check how much we have received so far
+      TotalReceived += res;
+
+      if (TotalReceived == buffSize)
+      {
+        break;
+      }
+
+      if (timeLimitMs > 0)
+      {
+        SleepEx(20, FALSE);
+        timeSpentMs += 20;
+      }
+
+      if (timeSpentMs >= timeLimitMs)
+      {
+        break;
+      }
+    }
+    return TotalReceived;
+  }
+
+  // NOTE: this function assumes the socket is non-blocking!
+  int getResp(const SOCKET s, unsigned int TimeOutms)
+  {
+    unsigned int TimeSpentMs = 0;
+    int res = xx_Recv(s, reinterpret_cast<char*>(&LengthOfFrame), 2, TimeSpentMs, TimeOutms);
 
     if (res < 0)
     {
@@ -138,7 +184,7 @@ struct Response
     if (LengthOfFrame == 0xFFFF)
     {
       // read extended length
-      int resX = recv(s, reinterpret_cast<char*>(&ExtLengthOfFrame), 4, 0);
+      int resX = xx_Recv(s, reinterpret_cast<char*>(&ExtLengthOfFrame), 4, TimeSpentMs, TimeOutms);
 
       if (resX < 0)
       {
@@ -155,34 +201,30 @@ struct Response
       m_Length = _byteswap_ushort(LengthOfFrame);
     }
 
-    int res2 = recv(s, reinterpret_cast<char*>(&ReturnState), 1, 0);
+    int res2 = xx_Recv(s, reinterpret_cast<char*>(&ReturnState), 1, TimeSpentMs, TimeOutms);
 
     if (res2 < 0)
     {
       return res2;
     }
 
-    int res3 = 0;
+    int ReceivedBinary = 0;
     
     if (m_RecvBuffSize > 0)
     {
-      res3 = recv(s, m_RecvBuffer, m_RecvBuffSize, 0);
-
-      if (res3 < 0)
-      {
-        return res3;
-      }
+      ReceivedBinary = xx_Recv(s, m_RecvBuffer,
+        m_UseFrameLength ? m_Length - 1 : m_RecvBuffSize, TimeSpentMs, TimeOutms);
     }
 
-    m_RecvBuffUsed = res3;
-    return res + res2 + res3;
+    m_RecvBuffUsed = ReceivedBinary;
+    return res + res2 + ReceivedBinary;
   }
 };
 
 struct Response_FileSize : public Response
 {
   Response_FileSize() :
-    Response(m_RespBuff, sizeof(m_RespBuff))
+    Response(m_RespBuff, sizeof(m_RespBuff), true)
   {
     memset(m_RespBuff, 0, sizeof(m_RespBuff));
   }

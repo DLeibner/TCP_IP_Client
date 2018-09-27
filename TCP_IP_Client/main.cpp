@@ -30,6 +30,9 @@ void main()
     return;
   }
 
+  // unsigned int RecvTimeout = 0;
+  // setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)& RecvTimeout, sizeof(RecvTimeout));
+
   // Fill in a hint structure
   sockaddr_in hint;
   hint.sin_family = AF_INET;
@@ -45,6 +48,9 @@ void main()
     WSACleanup();
   }
 
+  u_long NonBlocking = 1;
+  ioctlsocket(sock, FIONBIO, &NonBlocking);
+
   // Read Directory
   Request_ReadDirectory req("-1");
 
@@ -59,7 +65,7 @@ void main()
   char respBuff[60000] = {0};
   Response resp(respBuff, sizeof(respBuff));
 
-  int recvRes = resp.getResp(sock);
+  int recvRes = resp.getResp(sock, 500);
   if (recvRes == SOCKET_ERROR)
   {
     cerr << "Recv failed, Err#" << WSAGetLastError() << endl;
@@ -76,11 +82,12 @@ void main()
     cerr << "Send failed, Err#" << WSAGetLastError() << endl;
     closesocket(sock);
     WSACleanup();
+    return;
   }
 
   Response_FileSize resp2;
 
-  recvRes = resp2.getResp(sock);
+  recvRes = resp2.getResp(sock, 500);
   if (recvRes == SOCKET_ERROR)
   {
     cerr << "Recv failed, Err#" << WSAGetLastError() << endl;
@@ -88,7 +95,17 @@ void main()
     WSACleanup();
   }
 
-  cout << resp2.GetSize() << endl;
+  int fileSize = resp2.GetSize();
+
+  cout << fileSize << endl;
+
+  if (fileSize <= 0)
+  {
+    cout << "Size = 0, exiting" << endl;
+    closesocket(sock);
+    WSACleanup();
+    return;
+  }
 
   // Read File Data
   Request_ReadFile req3("#summary.sta");
@@ -99,19 +116,20 @@ void main()
     cerr << "Send failed, Err#" << WSAGetLastError() << endl;
     closesocket(sock);
     WSACleanup();
+    return;
   }
 
-  int fileSize = resp2.GetSize();
   char *respBuff3 = new char[fileSize];
   memset(respBuff3, 0, fileSize);
 
-  Response resp3(respBuff3, fileSize);
-  recvRes = resp3.getResp(sock);
+  Response resp3(respBuff3, fileSize, true);
+  recvRes = resp3.getResp(sock, 1000);
   if (recvRes == SOCKET_ERROR)
   {
     cerr << "Recv failed, Err#" << WSAGetLastError() << endl;
     closesocket(sock);
     WSACleanup();
+    return;
   }
 
   // Parse file
@@ -119,10 +137,13 @@ void main()
   delete[] respBuff3;
 
   // do while loop to send and receive data
-  while(true)
+  //while(true)
   {
     
   }
+
+  closesocket(sock);
+  WSACleanup();
 
   return;
 }
