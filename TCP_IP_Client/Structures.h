@@ -128,32 +128,48 @@ struct Response
   int m_RecvBuffSize;
   int m_RecvBuffUsed = 0;
 
+  bool IsFileEnd(const char *last_three)
+  {
+    if (strcmp(last_three, "\n\r\n") == 0)
+    {
+      return true;
+    }
+
+    return false;
+  }
+
   // internal: either the buffer fills, of the timeout expires
-  int xx_Recv(const SOCKET s, char *buff, unsigned int buffSize, unsigned int &timeSpentMs, unsigned int timeLimitMs)
+  int xx_Recv(const SOCKET s, char *buff, unsigned int buffSize, unsigned int &timeSpentMs, unsigned int timeLimitMs, bool isRnDelim = false)
   {
     int TotalReceived = 0;
+    bool isFileEnd = false;
 
     for (;;)
     {
       int res = recv(s, buff + TotalReceived, buffSize - TotalReceived, 0);
 
-      if (res < 0 && WSAGetLastError() != WSAEWOULDBLOCK)
+      if (res > 0)
+      {
+        TotalReceived += res;
+      }
+
+      if (TotalReceived > 3 && isRnDelim)
+      {
+        isFileEnd = IsFileEnd(&buff[TotalReceived - 3]);
+      }
+
+      if (isFileEnd || TotalReceived == buffSize)
+      {
+        break;
+      }
+      else if (res < 0 && WSAGetLastError() != WSAEWOULDBLOCK)
       {
         // socket error
         return res;
       }
-
-      if (res == 0)
+      else if (res == 0)
       {
         return -1;
-      }
-
-      // check how much we have received so far
-      TotalReceived += res;
-
-      if (TotalReceived == buffSize)
-      {
-        break;
       }
 
       if (timeLimitMs > 0)
@@ -167,6 +183,7 @@ struct Response
         break;
       }
     }
+
     return TotalReceived;
   }
 
@@ -213,7 +230,8 @@ struct Response
     if (m_RecvBuffSize > 0)
     {
       ReceivedBinary = xx_Recv(s, m_RecvBuffer,
-        m_UseFrameLength ? m_Length - 1 : m_RecvBuffSize, TimeSpentMs, TimeOutms);
+        m_UseFrameLength ? m_Length - 1 : m_RecvBuffSize, TimeSpentMs, TimeOutms,
+        m_UseFrameLength ? false : true);
     }
 
     m_RecvBuffUsed = ReceivedBinary;
