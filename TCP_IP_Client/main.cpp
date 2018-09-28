@@ -3,6 +3,7 @@
 #include <WS2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 #include "Structures.h"
+#include "Variables.h"
 
 using namespace std;
 
@@ -133,6 +134,8 @@ void main()
   }
 
   // Parse file
+  GantnerData gantnerData;
+  gantnerData.ParseFile(respBuff3, fileSize);
 
   delete[] respBuff3;
 
