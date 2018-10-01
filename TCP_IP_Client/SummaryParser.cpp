@@ -205,19 +205,19 @@ void GantnerData::_GetSlaveVariableData(const char*& line, Slave& slave)
     }
     else if (_GetLeftSide(lineData) == "InpSplitDataFieldOffs")
     {
-      currentSlaveVariable->InpSplitDataFieldOffs = stoi(_GetRightSide(lineData));
+      currentSlaveVariable->InpSplitDataFieldOffs = stoi(_GetRightSide(lineData), nullptr, 16);
     }
     else if (_GetLeftSide(lineData) == "InpCombDataFieldOffs")
     {
-      currentSlaveVariable->InpCombDataFieldOffs = stoi(_GetRightSide(lineData));
+      currentSlaveVariable->InpCombDataFieldOffs = stoi(_GetRightSide(lineData), nullptr, 16);
     }
     else if (_GetLeftSide(lineData) == "OutSplitDataFieldOffs")
     {
-      currentSlaveVariable->OutSplitDataFieldOffs = stoi(_GetRightSide(lineData));
+      currentSlaveVariable->OutSplitDataFieldOffs = stoi(_GetRightSide(lineData), nullptr, 16);
     }
     else if (_GetLeftSide(lineData) == "OutCombDataFieldOffs")
     {
-      currentSlaveVariable->OutCombDataFieldOffs = stoi(_GetRightSide(lineData));
+      currentSlaveVariable->OutCombDataFieldOffs = stoi(_GetRightSide(lineData), nullptr, 16);
     }
     else if (lineData == "")
     {
