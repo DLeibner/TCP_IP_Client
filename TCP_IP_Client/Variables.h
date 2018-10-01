@@ -22,8 +22,8 @@ struct SlaveVariable
   std::string VarType;
   std::string DataDirection;
   std::string DataType;
-  double RangeMin;
-  double RangeMax;
+  double RangeMin = 0;
+  double RangeMax = 0;
   std::string Unit;
   int AccessIndex;
   int InpSplitDataFieldOffs = -1;
