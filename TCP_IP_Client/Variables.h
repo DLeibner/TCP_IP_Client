@@ -26,25 +26,27 @@ struct SlaveVariable
   double RangeMax;
   std::string Unit;
   int AccessIndex;
-  int InpSplitDataFieldOffs;
-  int InpCombDataFieldOffs;
-  int OutSplitDataFieldOffs;
-  int OutCombDataFieldOffs;
+  int InpSplitDataFieldOffs = -1;
+  int InpCombDataFieldOffs = -1;
+  int OutSplitDataFieldOffs = -1;
+  int OutCombDataFieldOffs = -1;
 };
 
 struct Slave
 {
-  int UartIndex;
-  int Address;
+  int UartIndex = 0;
+  int Address = 0;
   int VariablesCount = 0;
 
-  std::list<std::unique_ptr<SlaveVariable>> slaveVariables;
+  std::list<std::shared_ptr<SlaveVariable>> slaveVariables;
 };
 
-struct GantnerData
+class GantnerData
 {
+public:
+
   General General;
-  std::list<std::unique_ptr<Slave>> Slaves;
+  std::list<std::shared_ptr<Slave>> Slaves;
 
   bool ParseFile(const char* buff, unsigned int size);
 

@@ -114,7 +114,7 @@ void GantnerData::_GetGeneralSectionData(const char*& line)
 void GantnerData::_GetSlavesData(const char*& line)
 {
   int currentSlaveCount = 1;
-  std::unique_ptr<Slave> currentSlave (new Slave);
+  std::shared_ptr<Slave> currentSlave (new Slave);
   bool slaveVariableDataExists = false;
 
   while (_GetLineFromFile(line))
@@ -164,7 +164,7 @@ void GantnerData::_GetSlavesData(const char*& line)
 void GantnerData::_GetSlaveVariableData(const char*& line, Slave& slave)
 {
   int currentVariableCount = 1;
-  std::unique_ptr<SlaveVariable> currentSlaveVariable(new SlaveVariable);
+  std::shared_ptr<SlaveVariable> currentSlaveVariable(new SlaveVariable);
 
   while (_GetLineFromFile(line))
   {
@@ -221,8 +221,9 @@ void GantnerData::_GetSlaveVariableData(const char*& line, Slave& slave)
     }
     else if (lineData == "")
     {
-      currentVariableCount++;
+      slave.slaveVariables.push_back(currentSlaveVariable);
 
+      currentVariableCount++;
       if (currentVariableCount > slave.VariablesCount)
       {
         return;
