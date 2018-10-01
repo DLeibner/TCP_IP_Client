@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <list>
+#include <memory>
 
 
 struct General
@@ -12,7 +13,7 @@ struct General
   std::string Vendor;
   double SampleRate;
   int VariablesCount;
-  int SlavesCount;
+  int SlavesCount = 0;
 };
 
 struct SlaveVariable
@@ -35,15 +36,15 @@ struct Slave
 {
   int UartIndex;
   int Address;
-  int VariablesCount;
+  int VariablesCount = 0;
 
-  std::list<SlaveVariable> slaveVariables;
+  std::list<std::unique_ptr<SlaveVariable>> slaveVariables;
 };
 
 struct GantnerData
 {
   General General;
-  std::list<Slave> Slaves;
+  std::list<std::unique_ptr<Slave>> Slaves;
 
   bool ParseFile(const char* buff, unsigned int size);
 
@@ -58,6 +59,10 @@ private:
   bool _GetLineFromFile(const char*& startOfLine);
 
   void _GetGeneralSectionData(const char*& startOfLine);
+
+  void _GetSlavesData(const char*& line);
+
+  void _GetSlaveVariableData(const char*& line, Slave& slave);
 
   std::string _GetRightSide(std::string data);
 
