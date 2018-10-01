@@ -232,6 +232,8 @@ void GantnerData::_GetSlaveVariableData(const char*& line, Slave& slave)
       currentSlaveVariable.reset(new SlaveVariable);
     }
   }
+
+  slave.slaveVariables.push_back(currentSlaveVariable);
 }
 
 std::string GantnerData::_GetRightSide(std::string data)
