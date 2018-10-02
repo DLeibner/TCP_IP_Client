@@ -1,5 +1,8 @@
 #include "Variables.h"
 
+#ifndef COUNT_OF
+#define COUNT_OF(arr) (sizeof(arr)/sizeof(arr[0]))
+#endif
 
 bool GantnerData::ParseFile(const char* buff, unsigned int size)
 {
@@ -71,38 +74,40 @@ void GantnerData::_GetGeneralSectionData(const char*& line)
   {
     std::string lineData(line);
     lineData = lineData.substr(0, lineData.find("\r\n"));
+    std::string left, right;
+    _SplitString(lineData, left, right);
 
-    if (_GetLeftSide(lineData) == "Type")
+    if (left == "Type")
     {
-      General.Type = _GetRightSide(lineData);
+      General.Type = right;
     }
-    else if (_GetLeftSide(lineData) == "IsBigEndian")
+    else if (left == "IsBigEndian")
     {
-      General.IsBigEndian = stoi(_GetRightSide(lineData));
+      General.IsBigEndian = stoi(right);
     }
-    else if (_GetLeftSide(lineData) == "AppName")
+    else if (left == "AppName")
     {
-      General.AppName = _GetRightSide(lineData);
+      General.AppName = right;
     }
-    else if (_GetLeftSide(lineData) == "AppVersion")
+    else if (left == "AppVersion")
     {
-      General.AppVersion = _GetRightSide(lineData);
+      General.AppVersion = right;
     }
-    else if (_GetLeftSide(lineData) == "Vendor")
+    else if (left == "Vendor")
     {
-      General.Vendor = _GetRightSide(lineData);
+      General.Vendor = right;
     }
-    else if (_GetLeftSide(lineData) == "SampleRate")
+    else if (left == "SampleRate")
     {
-      General.SampleRate = stod(_GetRightSide(lineData));
+      General.SampleRate = stod(right);
     }
-    else if (_GetLeftSide(lineData) == "VariablesCount")
+    else if (left == "VariablesCount")
     {
-      General.VariablesCount = stoi(_GetRightSide(lineData));
+      General.VariablesCount = stoi(right);
     }
-    else if (_GetLeftSide(lineData) == "SlavesCount")
+    else if (left == "SlavesCount")
     {
-      General.SlavesCount = stoi(_GetRightSide(lineData));
+      General.SlavesCount = stoi(right);
     }
     else if (lineData == "")
     {
@@ -113,137 +118,172 @@ void GantnerData::_GetGeneralSectionData(const char*& line)
 
 void GantnerData::_GetSlavesData(const char*& line)
 {
-  int currentSlaveCount = 1;
-  std::shared_ptr<Slave> currentSlave (new Slave);
-  bool slaveVariableDataExists = false;
-
-  while (_GetLineFromFile(line))
+  for (int currentSlaveCount = 1; currentSlaveCount <= General.SlavesCount; currentSlaveCount++)
   {
-    std::string lineData(line);
-    lineData = lineData.substr(0, lineData.find("\r\n"));
+    Slave s;
 
-    if (_GetLeftSide(lineData) == "UartIndex")
+    for (;;)
     {
-      currentSlave->UartIndex = stoi(_GetRightSide(lineData));
-    }
-    else if (_GetLeftSide(lineData) == "Address")
-    {
-      currentSlave->Address = stoi(_GetRightSide(lineData));
-    }
-    else if (_GetLeftSide(lineData) == "VariablesCount")
-    {
-      currentSlave->VariablesCount = stoi(_GetRightSide(lineData));
-
-      if (currentSlave->VariablesCount > 0)
-      {
-        slaveVariableDataExists = true;
-      }
-    }
-    else if (lineData == "")
-    {
-      if (slaveVariableDataExists)
-      {
-        slaveVariableDataExists = false;
-
-        _GetSlaveVariableData(line, *currentSlave);
-      }
-
-      Slaves.push_back(currentSlave);
-
-      currentSlaveCount++;
-      if (currentSlaveCount > General.SlavesCount)
+      if (!_GetLineFromFile(line))
       {
         return;
       }
 
-      currentSlave.reset(new Slave);
+      std::string lineData(line);
+
+      // read all data for a slave
+      while (!lineData.empty() && _GetLineFromFile(line))
+      {
+        lineData = line;
+        lineData = lineData.substr(0, lineData.find("\r\n"));
+        std::string left, right;
+        _SplitString(lineData, left, right);
+
+        if (left == "UartIndex")
+        {
+          s.UartIndex = stoi(right);
+        }
+        else if (left == "Address")
+        {
+          s.Address = stoi(right);
+        }
+        else if (left == "VariablesCount")
+        {
+          s.VariablesCount = stoi(right);
+        }
+        else if (lineData == "")
+        {
+          if (s.VariablesCount > 0)
+          {
+            _GetSlaveVariableData(line, s);
+          }
+
+          break;
+        }
+      }
+
+      Slaves.push_back(s);
+      break;
     }
   }
+}
+
+int GantnerData::_GetStringIndex(const std::string& value, const char** table, int items)
+{
+  for (int i = 0; i < items; i++)
+  {
+    if (value == table[i])
+    {
+      return i;
+    }
+  }
+
+  // not found: error
+  return -1;
 }
 
 void GantnerData::_GetSlaveVariableData(const char*& line, Slave& slave)
 {
-  int currentVariableCount = 1;
-  std::shared_ptr<SlaveVariable> currentSlaveVariable(new SlaveVariable);
-
-  while (_GetLineFromFile(line))
+  for (int currentVariableCount = 1; currentVariableCount <= slave.VariablesCount; currentVariableCount++)
   {
-    std::string lineData(line);
-    lineData = lineData.substr(0, lineData.find("\r\n"));
+    SlaveVariable slaveVariable;
 
-    if (_GetLeftSide(lineData) == "Name")
+    for (;;)
     {
-      currentSlaveVariable->Name = _GetRightSide(lineData);
-    }
-    else if (_GetLeftSide(lineData) == "VarType")
-    {
-      currentSlaveVariable->VarType = _GetRightSide(lineData);
-    }
-    else if (_GetLeftSide(lineData) == "DataDirection")
-    {
-      currentSlaveVariable->DataDirection = _GetRightSide(lineData);
-    }
-    else if (_GetLeftSide(lineData) == "DataType")
-    {
-      currentSlaveVariable->DataType = _GetRightSide(lineData);
-    }
-    else if (_GetLeftSide(lineData) == "RangeMin")
-    {
-      currentSlaveVariable->RangeMin = stod(_GetRightSide(lineData));
-    }
-    else if (_GetLeftSide(lineData) == "RangeMax")
-    {
-      currentSlaveVariable->RangeMax = stod(_GetRightSide(lineData));
-    }
-    else if (_GetLeftSide(lineData) == "Unit")
-    {
-      currentSlaveVariable->Unit = _GetRightSide(lineData);
-    }
-    else if (_GetLeftSide(lineData) == "AccessIndex")
-    {
-      currentSlaveVariable->AccessIndex = stoi(_GetRightSide(lineData));
-    }
-    else if (_GetLeftSide(lineData) == "InpSplitDataFieldOffs")
-    {
-      currentSlaveVariable->InpSplitDataFieldOffs = stoi(_GetRightSide(lineData), nullptr, 16);
-    }
-    else if (_GetLeftSide(lineData) == "InpCombDataFieldOffs")
-    {
-      currentSlaveVariable->InpCombDataFieldOffs = stoi(_GetRightSide(lineData), nullptr, 16);
-    }
-    else if (_GetLeftSide(lineData) == "OutSplitDataFieldOffs")
-    {
-      currentSlaveVariable->OutSplitDataFieldOffs = stoi(_GetRightSide(lineData), nullptr, 16);
-    }
-    else if (_GetLeftSide(lineData) == "OutCombDataFieldOffs")
-    {
-      currentSlaveVariable->OutCombDataFieldOffs = stoi(_GetRightSide(lineData), nullptr, 16);
-    }
-    else if (lineData == "")
-    {
-      slave.slaveVariables.push_back(currentSlaveVariable);
-
-      currentVariableCount++;
-      if (currentVariableCount > slave.VariablesCount)
+      if (!_GetLineFromFile(line))
       {
+        slave.slaveVariables.push_back(slaveVariable);
         return;
       }
 
-      currentSlaveVariable.reset(new SlaveVariable);
+      std::string lineData(line);
+      lineData = lineData.substr(0, lineData.find("\r\n"));
+
+      std::string left, right;
+      _SplitString(lineData, left, right);
+
+      if (left == "Name")
+      {
+        slaveVariable.Name = right;
+      }
+      else if (left == "VarType")
+      {
+        slaveVariable.VarType = right;
+      }
+      else if (left == "DataDirection")
+      {
+        const char* s_Directions[] =
+        {
+          "I", // In
+          "O", // Out
+          "IO" // InAndOut
+        };
+
+        int Dir = _GetStringIndex(right, s_Directions, COUNT_OF(s_Directions));
+
+        if (Dir < 0)
+        {
+          // todo: can't parse :(
+        }
+
+        slaveVariable.DataDirection = (SlaveVariable::eDataDirection) Dir;
+      }
+      else if (left == "DataType")
+      {
+        slaveVariable.DataType = right;
+      }
+      else if (left == "RangeMin")
+      {
+        slaveVariable.RangeMin = stod(right);
+      }
+      else if (left == "RangeMax")
+      {
+        slaveVariable.RangeMax = stod(right);
+      }
+      else if (left == "Unit")
+      {
+        slaveVariable.Unit = right;
+      }
+      else if (left == "AccessIndex")
+      {
+        slaveVariable.AccessIndex = stoi(right);
+      }
+      else if (left == "InpSplitDataFieldOffs")
+      {
+        slaveVariable.InpSplitDataFieldOffs = stoi(right, nullptr, 16);
+      }
+      else if (left == "InpCombDataFieldOffs")
+      {
+        slaveVariable.InpCombDataFieldOffs = stoi(right, nullptr, 16);
+      }
+      else if (left == "OutSplitDataFieldOffs")
+      {
+        slaveVariable.OutSplitDataFieldOffs = stoi(right, nullptr, 16);
+      }
+      else if (left == "OutCombDataFieldOffs")
+      {
+        slaveVariable.OutCombDataFieldOffs = stoi(right, nullptr, 16);
+      }
+      else if (lineData == "")
+      {
+        slave.slaveVariables.push_back(slaveVariable);
+        break;
+      }
     }
   }
-
-  slave.slaveVariables.push_back(currentSlaveVariable);
 }
 
-std::string GantnerData::_GetRightSide(std::string data)
+bool GantnerData::_SplitString(const std::string data, std::string& left, std::string& right)
 {
-  std::string rightSide = data.substr(data.find_last_of("=") + 1);
-  return rightSide;
+  size_t s = data.find('=');
+
+  if (s == std::string::npos)
+  {
+    return false;
+  }
+
+  left = data.substr(0, s);
+  right = data.substr(s + 1);
+  return true;
 }
 
-std::string GantnerData::_GetLeftSide(std::string data)
-{
-  std::string rightSide = data.substr(0, data.find_first_of("="));
-  return rightSide;
-}

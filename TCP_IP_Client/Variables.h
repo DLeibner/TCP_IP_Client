@@ -1,8 +1,6 @@
 #pragma once
 #include <string>
 #include <list>
-#include <memory>
-
 
 struct General
 {
@@ -18,9 +16,16 @@ struct General
 
 struct SlaveVariable
 {
+  enum eDataDirection
+  {
+    In = 0,
+    Out = 1,
+    InAndOut = 2
+  };
+
   std::string Name;
   std::string VarType;
-  std::string DataDirection;
+  eDataDirection DataDirection;
   std::string DataType;
   double RangeMin = 0;
   double RangeMax = 0;
@@ -38,7 +43,7 @@ struct Slave
   int Address = 0;
   int VariablesCount = 0;
 
-  std::list<std::shared_ptr<SlaveVariable>> slaveVariables;
+  std::list<SlaveVariable> slaveVariables;
 };
 
 class GantnerData
@@ -46,7 +51,7 @@ class GantnerData
 public:
 
   General General;
-  std::list<std::shared_ptr<Slave>> Slaves;
+  std::list<Slave> Slaves;
 
   bool ParseFile(const char* buff, unsigned int size);
 
@@ -66,8 +71,11 @@ private:
 
   void _GetSlaveVariableData(const char*& line, Slave& slave);
 
-  std::string _GetRightSide(std::string data);
+  // divides string to the left part and the right part
+  // it's assumed that the string looks like <A>=<B>
+  // returns false if the parsing cannot be done
+  static bool _SplitString(const std::string data, std::string& left, std::string& right);
 
-  std::string _GetLeftSide(std::string data);
+  static int _GetStringIndex(const std::string& value, const char** table, int items);
 };
 
