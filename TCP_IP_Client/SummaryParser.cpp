@@ -192,7 +192,7 @@ void GantnerData::_GetSlaveVariableData(const char*& line, Slave& slave)
     {
       if (!_GetLineFromFile(line))
       {
-        slave.slaveVariables.push_back(slaveVariable);
+        slave.SlaveVariables.push_back(slaveVariable);
         return;
       }
 
@@ -266,7 +266,7 @@ void GantnerData::_GetSlaveVariableData(const char*& line, Slave& slave)
       }
       else if (lineData == "")
       {
-        slave.slaveVariables.push_back(slaveVariable);
+        slave.SlaveVariables.push_back(slaveVariable);
         break;
       }
     }

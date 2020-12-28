@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <list>
+#include <vector>
 
 struct General
 {
@@ -18,9 +18,36 @@ struct SlaveVariable
 {
   enum eDataDirection
   {
-    In = 0,
-    Out = 1,
-    InAndOut = 2
+    I = 0,  // Input
+    O = 1,  // Output
+    IO = 2, // Input/Output
+    E       // Empty
+  };
+
+  enum eVarType
+  {
+    AIN = 0,  // Analog in
+    AOU = 1,  // Analog out
+    DIN = 2,  // Digital in
+    DOU = 3,  // Digital out
+    SPT = 4,  // Setpoit
+    ARI = 5   // Arithmetic
+  };
+
+  enum eDataType
+  {
+    BOOL = 0,
+    SINT8 = 1,
+    USINT8 = 2,
+    SINT16 = 3,
+    USINT16 = 4,
+    SINT32 = 5,
+    USINT32 = 6,
+    FLOAT = 7,
+    SET8 = 8,
+    SET16 = 9,
+    SET32 = 10,
+    DOUBLE = 11
   };
 
   std::string Name;
@@ -43,7 +70,7 @@ struct Slave
   int Address = 0;
   int VariablesCount = 0;
 
-  std::list<SlaveVariable> slaveVariables;
+  std::vector<SlaveVariable> SlaveVariables;
 };
 
 class GantnerData
@@ -51,7 +78,7 @@ class GantnerData
 public:
 
   General General;
-  std::list<Slave> Slaves;
+  std::vector<Slave> Slaves;
 
   bool ParseFile(const char* buff, unsigned int size);
 
